@@ -1,15 +1,15 @@
 /*
- * IMPORTANT: Increase CACHE_VERSION whenever ishwarshopify.csv or website
+ * IMPORTANT: Increase CACHE_VERSION whenever ishwarshopify.json or website
  * files change. The new cache is prepared, then users are asked to reload.
  */
-const CACHE_VERSION = 'yournamepharma-v1';
+const CACHE_VERSION = 'yournamepharma-v2';
 const CACHE_NAME = `yournamepharma-${CACHE_VERSION}`;
 const CORE_FILES = [
   './',
   './index.html',
   './styles.css',
   './app.js',
-  './ishwarshopify.csv',
+  './ishwarshopify.json',
   './manifest.json',
   './assets/favicon/favicon.ico',
   './assets/favicon/favicon.svg',
@@ -32,13 +32,12 @@ self.addEventListener('install', event => {
         if (response.ok) await cache.put(path, response);
       } catch (error) {
         // Keep installation resilient if one optional icon is unavailable.
-        if (path === './index.html' || path === './app.js' || path === './ishwarshopify.csv') throw error;
+        if (path === './index.html' || path === './app.js' || path === './ishwarshopify.json') throw error;
       }
     }
     // Cache the external libraries when reachable so the order catalogue
     // and PDF checkout can also work offline after the first online visit.
     const cdnFiles = [
-      'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js',
       'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
     ];
     for (const url of cdnFiles) {
@@ -64,7 +63,7 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   const isSameOrigin = url.origin === self.location.origin;
-  const isCsv = isSameOrigin && url.pathname.endsWith('/ishwarshopify.csv');
+  const isCsv = isSameOrigin && url.pathname.endsWith('/ishwarshopify.json');
   const isAppShell = isSameOrigin && (
     url.pathname.endsWith('/') ||
     /\.(html|css|js|json|ico|svg|png|webmanifest)$/i.test(url.pathname) ||

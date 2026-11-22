@@ -1,8 +1,8 @@
 // CUSTOMER SETTINGS — change these four values for each clone
 const CUSTOMER = {
-  firm_name: "YOUR NAME",
-  whatsapp_number: "919809193333",
-  address: "Dawa Bazar, India.",
+  firm_name: "ISHWAR PHARMA",
+  whatsapp_number: "919876543210",
+  address: "Enter business address here",
   margin_percent: 0,
 };
 (function(){'use strict';
@@ -134,30 +134,13 @@ $('#installDone').onclick=()=>$('#installDialog').close();
 $('#reloadUpdatedSite').onclick=()=>window.location.reload();
 $('#dismissUpdate').onclick=()=>$('#updateNotice').hidden=true;
 }
-function parseShopifyRow(row,index){
- const clean=v=>String(v??'').trim();
- const title=clean(row['Title']); if(!title)return null;
- const vendor=clean(row['Vendor'])||'Unspecified';
- const aliases={'Alkem1':'Alkem','Aristo1':'Aristo','Cadila1':'Cadila','Romson 1':'Romson'};
- const finalVendor=aliases[vendor]||vendor;
- const rawTags=clean(row['Tags']||row['Product Category']||row['Type']);
- const compound={'JOINT & ARTHRITIS CARE, MUSCLE':'Muscle, Joint & Arthritis Care','BODY PAIN & PAIN RELIEF, FEVER':'Fever, Body Pain & Pain Relief','SLEEP, STRESS & ANXIETY CARE':'Sleep, Stress & Anxiety Care','FISSURES & HEMORRHOIDS, PILES':'Piles, Fissures & Hemorrhoids','ANAESTHESIA, MUSCLE RELAXANTS':'Anaesthesia, Muscle Relaxants'};
- let cats=compound[rawTags.toUpperCase()]?[compound[rawTags.toUpperCase()]]:rawTags.split(',').map(x=>x.trim()).filter(Boolean).map(x=>x.toLowerCase()==='others'?'Other Medicines':x.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()));
- if(!cats.length)cats=['Other Medicines'];
- const num=v=>{const n=Number(String(v??'').replace(/,/g,'').trim());return Number.isFinite(n)&&n>=0?n:0};
- const id='p'+index+'-'+title.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,32);
- return {id,title,name:title,vendor:finalVendor,vendorOriginal:vendor,categories:cats,type:clean(row['Type']),price:num(row['Variant Price']),mrp:num(row['Variant Compare At Price']),image:clean(row['Image Src']),hasDetails:!!clean(row['Body (HTML)']),searchText:[title,finalVendor,clean(row['Type'])].join(' '),bodyHtml:clean(row['Body (HTML)'])};
-}
 async function start(){try{
- const response=await fetch('ishwarshopify.csv');if(!response.ok)throw Error('Could not load ishwarshopify.csv');
- const csvText=await response.text();
- if(!window.Papa)throw Error('CSV reader could not load. Check your internet connection and refresh.');
- const parsed=Papa.parse(csvText,{header:true,skipEmptyLines:true});
- if(parsed.errors?.length)console.warn('Some CSV rows could not be read:',parsed.errors.slice(0,5));
- products=parsed.data.map(parseShopifyRow).filter(Boolean);
- if(!products.length)throw Error('No products found. Check that the CSV is a Shopify product export.');
+ const response=await fetch('ishwarshopify.json');
+ if(!response.ok)throw Error('Could not load ishwarshopify.json');
+ products=await response.json();
+ if(!Array.isArray(products)||!products.length)throw Error('No products found. Check ishwarshopify.json.');
  initConfig();fillSelect('#category',categories(),'All categories');fillSelect('#company',vendors(),'All companies');renderCategories();renderCategoryShowcase();bind();render();renderCart();
- }catch(e){$('#products').innerHTML=`<div class="empty panel"><h3>Catalogue could not be loaded</h3><p>${esc(e.message)}. Keep ishwarshopify.csv beside index.html and use a website host or local web server.</p></div>`}}
+ }catch(e){$('#products').innerHTML=`<div class="empty panel"><h3>Catalogue could not be loaded</h3><p>${esc(e.message)}. Keep ishwarshopify.json beside index.html and use a website host or local web server.</p></div>`}}
 function showInstallInstructions(kind){
  const box=$('#installInstructions');
  let html='';

@@ -1,33 +1,25 @@
-B2B2C MASTER — CSV + INSTALLABLE WEBSITE
+YOURNAME PHARMA — CUSTOMER WEBSITE MASTER
 
-ROOT FILES
-- index.html
-- styles.css
-- app.js
-- ishwarshopify.csv
-- manifest.json
-- sw.js
-- assets/favicon/ (all shared brand icon files)
+1) BUILD THE PRODUCT CATALOGUE
+- Export the Shopify catalogue as ishwarshopify.csv.
+- Keep it in this folder beside ishwarshopify.py.
+- Double-click run_ishwarshopify.bat.
+- It creates/updates ishwarshopify.json.
+- Upload the JSON catalogue to the live website repository. Do not upload the CSV or Python scripts.
 
-CUSTOMER CLONE
-1. Replace ishwarshopify.csv with that customer's Shopify export, keeping the exact filename.
-2. Change the four CUSTOMER values at the top of app.js: firm_name, whatsapp_number, address, margin_percent.
-3. Keep manifest.json, sw.js and assets/favicon unchanged unless you are changing shared branding.
-4. Deploy on HTTPS (Cloudflare Pages is suitable).
+2) CREATE A CUSTOMER WEBSITE
+- Keep the master templates and yournamekyc.py in this folder.
+- Double-click yournamekyc.py (or run: py -3 yournamekyc.py).
+- Enter firm name, WhatsApp number, full address, margin, domain and SEO description.
+- The script generates customer-specific index.html, app.js and manifest.json.
+- It always starts from index.template.html, app.template.js and manifest.template.json, so you can run it again for another customer.
 
-INSTALL APP
-The bottom Install button uses the browser's native install prompt when supported.
-On iPhone/iPad it displays Safari > Share > Add to Home Screen instructions.
-This is a Progressive Web App (PWA): it remains a website, not an App Store / Play Store native app.
+3) DEPLOYMENT CHECKLIST
+- Deploy the generated index.html, app.js and manifest.json with the website files.
+- Keep ishwarshopify.json, styles.css, sw.js and assets/favicon/ in the repo.
+- Configure the customer's domain at the hosting/DNS provider.
+- Increment CACHE_VERSION in sw.js for each customer deployment or catalogue update.
+- The generated SEO schema uses the supplied address as streetAddress; provide a complete accurate address.
+- Favicon artwork is shared from the master. Replace it if each customer needs their own logo.
 
-OFFLINE + CATALOGUE CACHE
-The first successful visit downloads and caches the website shell and ishwarshopify.csv.
-To publish an updated CSV or website version:
-1. Upload the new ishwarshopify.csv.
-2. Open sw.js and change CACHE_VERSION, e.g. yournamepharma-v1 to yournamepharma-v2.
-3. Commit/deploy both changes.
-When the new service worker activates, the new cache is prepared and old cache removed. Existing open tabs see a reload notice to switch to the new version.
-If the user is offline, the previously cached catalogue remains available.
-
-IMPORTANT
-The CSV and website are cached by version. Do not forget to increment CACHE_VERSION whenever you upload a new CSV. First visit requires internet. Browser storage may be cleared by the user or the operating system, so offline availability cannot be guaranteed forever.
+LIVE REPOSITORY SHOULD NOT INCLUDE: CSV source files or Python setup scripts.
