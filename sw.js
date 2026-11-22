@@ -2,7 +2,7 @@
  * IMPORTANT: Increase CACHE_VERSION whenever ishwarshopify.json or website
  * files change. The new cache is prepared, then users are asked to reload.
  */
-const CACHE_VERSION = 'yournamepharma-v2';
+const CACHE_VERSION = 'yournamepharma-v3';
 const CACHE_NAME = `yournamepharma-${CACHE_VERSION}`;
 const CORE_FILES = [
   './',
@@ -71,6 +71,12 @@ self.addEventListener('fetch', event => {
   );
   const isKnownCdn = url.hostname === 'cdnjs.cloudflare.com';
   const isImage = request.destination === 'image';
+
+  // Product images are hosted on Shopify's external CDN. Let Safari load
+  // these directly instead of serving cached opaque image responses from
+  // the service worker, which can fail in iOS Safari/PWA.
+  if (isImage && !isSameOrigin) return;
+
   if (!isAppShell && !isKnownCdn && !isImage) return;
 
   event.respondWith((async () => {
