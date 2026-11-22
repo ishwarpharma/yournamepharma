@@ -7,7 +7,7 @@ const CUSTOMER = {
 };
 (function(){'use strict';
 const $=s=>document.querySelector(s);const money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
-let products=[],config=CUSTOMER,qtyDraft={},cart=loadCart(),mode='list',activeProduct=null,categoryPage=0,categoryPageSize=16,categoryAutoplayTimer=null,categoryPointerStart=null,swipeClickUntil=0,categoryCarouselVisible=false,categoryCarouselBound=false;
+let deferredInstallPrompt=null,products=[],config=CUSTOMER,qtyDraft={},cart=loadCart(),mode='list',activeProduct=null,categoryPage=0,categoryPageSize=16,categoryAutoplayTimer=null,categoryPointerStart=null,swipeClickUntil=0,categoryCarouselVisible=false,categoryCarouselBound=false;
 const CART_KEY='medicine_store_cart_v1';
 function loadCart(){try{return JSON.parse(localStorage.getItem(CART_KEY)||'{}')}catch(e){return {}}}
 function saveCart(){localStorage.setItem(CART_KEY,JSON.stringify(cart));renderCart()}
@@ -127,7 +127,13 @@ $('#company').addEventListener('change',()=>{render();$('#companyPickerDialog').
 
 $('#bottomReset').onclick=()=>{$('#search').value='';$('#category').value='';$('#company').value='';render()};
 $('#bottomCart').onclick=openCart;
-$('#addSelected').onclick=addDrafts;$('#cartOpen').onclick=openCart;$('#cartClose').onclick=closeCart;$('#overlay').onclick=closeCart;$('#checkout').onclick=checkout;$('#detailClose').onclick=()=>$('#productDialog').close();$('#checkoutClose').onclick=()=>$('#checkoutDialog').close();$('#cartLines').addEventListener('change',e=>{if(e.target.matches('input')){let id=e.target.closest('[data-cart-id]').dataset.cartId,n=Math.max(1,Math.min(9999,Math.floor(Number(e.target.value)||1)));cart[id]=n;saveCart()}});$('#cartLines').addEventListener('click',e=>{let b=e.target.closest('[data-remove]');if(b){delete cart[b.dataset.remove];saveCart()}})}
+$('#addSelected').onclick=addDrafts;$('#cartOpen').onclick=openCart;$('#cartClose').onclick=closeCart;$('#overlay').onclick=closeCart;$('#checkout').onclick=checkout;$('#detailClose').onclick=()=>$('#productDialog').close();$('#checkoutClose').onclick=()=>$('#checkoutDialog').close();$('#cartLines').addEventListener('change',e=>{if(e.target.matches('input')){let id=e.target.closest('[data-cart-id]').dataset.cartId,n=Math.max(1,Math.min(9999,Math.floor(Number(e.target.value)||1)));cart[id]=n;saveCart()}});$('#cartLines').addEventListener('click',e=>{let b=e.target.closest('[data-remove]');if(b){delete cart[b.dataset.remove];saveCart()}});
+$('#bottomInstall').onclick=handleInstallClick;
+$('#installClose').onclick=()=>$('#installDialog').close();
+$('#installDone').onclick=()=>$('#installDialog').close();
+$('#reloadUpdatedSite').onclick=()=>window.location.reload();
+$('#dismissUpdate').onclick=()=>$('#updateNotice').hidden=true;
+}
 function parseShopifyRow(row,index){
  const clean=v=>String(v??'').trim();
  const title=clean(row['Title']); if(!title)return null;
@@ -152,5 +158,38 @@ async function start(){try{
  if(!products.length)throw Error('No products found. Check that the CSV is a Shopify product export.');
  initConfig();fillSelect('#category',categories(),'All categories');fillSelect('#company',vendors(),'All companies');renderCategories();renderCategoryShowcase();bind();render();renderCart();
  }catch(e){$('#products').innerHTML=`<div class="empty panel"><h3>Catalogue could not be loaded</h3><p>${esc(e.message)}. Keep ishwarshopify.csv beside index.html and use a website host or local web server.</p></div>`}}
+function showInstallInstructions(kind){
+ const box=$('#installInstructions');
+ let html='';
+ if(kind==='ios') html=`<p class="eyebrow">INSTALL WEBSITE</p><h2>Add to your iPhone</h2><ol><li>Tap the <b>Share</b> icon in Safari (square with an upward arrow).</li><li>Scroll down and choose <b>Add to Home Screen</b>.</li><li>Keep the suggested name and tap <b>Add</b>.</li></ol><p class="install-tip">Use Safari for this process. The website will then appear as an app icon on your home screen.</p>`;
+ else if(kind==='android') html=`<p class="eyebrow">INSTALL WEBSITE</p><h2>Add to your home screen</h2><ol><li>Tap <b>Install</b> if your browser offers the installation prompt.</li><li>If no prompt appears, open the browser menu (⋮).</li><li>Choose <b>Install app</b> or <b>Add to Home screen</b>.</li></ol><p class="install-tip">The website opens in an app-like window. No Play Store download is needed.</p>`;
+ else html=`<p class="eyebrow">INSTALL WEBSITE</p><h2>Add to your desktop</h2><ol><li>Look for the install icon in the address bar, or open the browser menu.</li><li>Choose <b>Install</b> or <b>Install this site as an app</b>.</li><li>Confirm the installation.</li></ol><p class="install-tip">A shortcut/app window will be added to your computer. Availability depends on your browser.</p>`;
+ box.innerHTML=html;$('#installDialog').showModal();
+}
+async function handleInstallClick(){
+ if(deferredInstallPrompt){
+   deferredInstallPrompt.prompt();
+   const choice=await deferredInstallPrompt.userChoice;
+   deferredInstallPrompt=null;
+   if(choice&&choice.outcome==='accepted'){$('#bottomInstall').querySelector('span:last-child').textContent='Installed';return}
+ }
+ const ua=navigator.userAgent||'';
+ const ios=/iPad|iPhone|iPod/.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1);
+ const android=/Android/i.test(ua);
+ const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+ if(standalone){showInstallInstructions('installed');$('#installInstructions').innerHTML='<p class="eyebrow">ALREADY INSTALLED</p><h2>You are using the app</h2><p>This website is already running from its home-screen or desktop app shortcut.</p>';return}
+ showInstallInstructions(ios?'ios':android?'android':'desktop');
+}
+function setupPwa(){
+ window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstallPrompt=event});
+ window.addEventListener('appinstalled',()=>{$('#bottomInstall').querySelector('span:last-child').textContent='Installed';deferredInstallPrompt=null});
+ if(!('serviceWorker' in navigator))return;
+ const hadController=!!navigator.serviceWorker.controller;
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{
+   if(hadController)$('#updateNotice').hidden=false;
+ });
+ navigator.serviceWorker.register('./sw.js').catch(err=>console.warn('Offline support could not be enabled:',err));
+}
+setupPwa();
 start();
 })();
