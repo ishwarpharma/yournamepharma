@@ -6,7 +6,7 @@ const CUSTOMER = {
   "margin_percent": 0.0
 };
 (function(){'use strict';
-const $=s=>document.querySelector(s);const money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const $=s=>document.querySelector(s);const money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});const plainAmount=n=>Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
 let deferredInstallPrompt=null,products=[],config=CUSTOMER,qtyDraft={},cart=loadCart(),mode='list',activeProduct=null,categoryPage=0,categoryPageSize=16,categoryAutoplayTimer=null,categoryPointerStart=null,swipeClickUntil=0,categoryCarouselVisible=false,categoryCarouselBound=false;
 const CART_KEY='medicine_store_cart_v1';
 function loadCart(){try{return JSON.parse(localStorage.getItem(CART_KEY)||'{}')}catch(e){return {}}}
@@ -87,9 +87,9 @@ function makeOrderPdf(customer,lines){
    const rate=sellingPrice(p),amount=rate*q;total+=amount;
    const nameLines=doc.splitTextToSize(p.title,110);
    if(y+Math.max(7,nameLines.length*4)>280){doc.addPage();y=18}
-   doc.setFont('helvetica','normal');doc.text(nameLines,left,y);doc.text(String(q),132,y);doc.text(money(rate),150,y);doc.text(money(amount),right,y,{align:'right'});y+=Math.max(7,nameLines.length*4);
+   doc.setFont('helvetica','normal');doc.text(nameLines,left,y);doc.text(String(q),132,y);doc.text(plainAmount(rate),150,y);doc.text(plainAmount(amount),right,y,{align:'right'});y+=Math.max(7,nameLines.length*4);
  });
- y+=2;doc.line(left,y,right,y);y+=8;doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text('Order total: '+money(total),right,y,{align:'right'});
+ y+=2;doc.line(left,y,right,y);y+=8;doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text('Order total: '+plainAmount(total),right,y,{align:'right'});
  y+=12;doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text('This is an order request. Prices, stock and fulfilment are subject to confirmation.',left,y);
  const filename=(config.firm_name||'order').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase()+'-order-'+Date.now()+'.pdf';
  doc.save(filename);return true;
@@ -97,7 +97,7 @@ function makeOrderPdf(customer,lines){
 function checkout(){
  let lines=cartEntries();if(!lines.length){toast('Your cart is empty');return}
  closeCart();let total=lines.reduce((a,x)=>a+sellingPrice(x.p)*x.q,0);
- $('#checkoutContent').innerHTML=`<p class="eyebrow">ORDER REQUEST</p><h2>Customer details</h2><p class="detail-meta">Your order will be prepared as a PDF. WhatsApp will open with the distributor's number; attach the downloaded PDF and press Send.</p><form id="orderForm" class="checkout-form"><label>Customer / chemist name<input name="name" maxlength="100" required></label><label>Shop name<input name="shop" maxlength="120" required></label><label>Mobile number<input name="mobile" inputmode="tel" maxlength="20" required></label><label class="wide">Delivery address<textarea name="address" rows="2" maxlength="1000" required></textarea></label><label class="wide">Order notes<textarea name="notes" rows="2" maxlength="1000"></textarea></label><div class="wide checkout-summary"><b>${lines.length} product lines · ${money(total)}</b><br>${lines.map(x=>`${esc(x.p.title)} × ${x.q}`).join('<br>')}</div><button class="primary wide" type="submit">Create PDF & open WhatsApp</button><p class="wide detail-meta" id="orderStatus" role="status" aria-live="polite"></p></form>`;
+ $('#checkoutContent').innerHTML=`<p class="eyebrow">ORDER REQUEST</p><h2>Customer details</h2><p class="detail-meta">Your order PDF will be downloaded, and WhatsApp will open with your complete order details ready to send.</p><form id="orderForm" class="checkout-form"><label>Customer / chemist name<input name="name" maxlength="100" required></label><label>Shop name<input name="shop" maxlength="120" required></label><label>Mobile number<input name="mobile" inputmode="tel" maxlength="20" required></label><label class="wide">Delivery address<textarea name="address" rows="2" maxlength="1000" required></textarea></label><label class="wide">Order notes<textarea name="notes" rows="2" maxlength="1000"></textarea></label><div class="wide checkout-summary"><b>${lines.length} product lines · ${money(total)}</b><br>${lines.map(x=>`${esc(x.p.title)} × ${x.q}`).join('<br>')}</div><button class="primary wide" type="submit">Create PDF & open WhatsApp</button><p class="wide detail-meta" id="orderStatus" role="status" aria-live="polite"></p></form>`;
  $('#checkoutDialog').showModal();
  $('#orderForm').addEventListener('submit',e=>{
    e.preventDefault();const form=e.currentTarget,customer=Object.fromEntries(new FormData(form).entries()),status=$('#orderStatus');
@@ -105,9 +105,22 @@ function checkout(){
    if(!number){status.textContent='Please configure CUSTOMER.whatsapp_number at the top of app.js.';return}
    const ok=makeOrderPdf(customer,lines);
    if(!ok){status.textContent='PDF library did not load. Use the browser print dialog to save the order as PDF, then open WhatsApp.';return}
-   const message=`New order from ${customer.name} (${customer.shop}). The order PDF has been downloaded. Please find it attached.`;
+   const productLines=lines.map(({p,q},i)=>{
+     const rate=sellingPrice(p),amount=rate*q;
+     return `${i+1}. ${p.title} | ${q} x ${plainAmount(rate)} = ${plainAmount(amount)}`;
+   });
+   const orderTotal=lines.reduce((sum,{p,q})=>sum+sellingPrice(p)*q,0);
+   const message=[
+     'NEW ORDER',
+     `${customer.name} | ${customer.shop}`,
+     `Mob ${customer.mobile}`,
+     customer.address,
+     ...productLines,
+     `TOTAL ${plainAmount(orderTotal)}`,
+     customer.notes ? `Note: ${customer.notes}` : ''
+   ].filter(Boolean).join('\n');
    window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`,'_blank','noopener');
-   status.textContent='PDF downloaded. In WhatsApp, attach the downloaded PDF and press Send.';
+   status.textContent='PDF downloaded. WhatsApp opened with the order details. Review and press Send.';
    cart={};saveCart();
  });
 }
