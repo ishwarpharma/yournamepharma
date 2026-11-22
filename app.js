@@ -1,9 +1,9 @@
 // CUSTOMER SETTINGS — change these four values for each clone
 const CUSTOMER = {
-  firm_name: "ISHWAR PHARMA",
-  whatsapp_number: "919876543210",
-  address: "Enter business address here",
-  margin_percent: 0,
+  "firm_name": "Your Name",
+  "whatsapp_number": "9809193333",
+  "address": "Dawa Bazar, India",
+  "margin_percent": 0.0
 };
 (function(){'use strict';
 const $=s=>document.querySelector(s);const money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});

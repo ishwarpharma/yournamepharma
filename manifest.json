@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "YourNamePharma.com",
-  "short_name": "YourName",
-  "description": "Medicine ordering website",
+  "name": "Your Name",
+  "short_name": "Your Name",
+  "description": "ABC Medical Stores is your trusted online pharmacy in Pune, offering a wide range of generic medicines and healthcare products at affordable prices. Order medicines online with convenient WhatsApp ordering and reliable service.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
