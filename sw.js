@@ -2,7 +2,7 @@
  * IMPORTANT: Increase CACHE_VERSION whenever ishwarshopify.json or website
  * files change. The new cache is prepared, then users are asked to reload.
  */
-const CACHE_VERSION = 'yournamepharma-v3';
+const CACHE_VERSION = 'yournamepharma-v4';
 const CACHE_NAME = `yournamepharma-${CACHE_VERSION}`;
 const CORE_FILES = [
   './',
@@ -70,14 +70,13 @@ self.addEventListener('fetch', event => {
     isCsv
   );
   const isKnownCdn = url.hostname === 'cdnjs.cloudflare.com';
-  const isImage = request.destination === 'image';
 
-  // Product images are hosted on Shopify's external CDN. Let Safari load
-  // these directly instead of serving cached opaque image responses from
-  // the service worker, which can fail in iOS Safari/PWA.
-  if (isImage && !isSameOrigin) return;
+  // Images are never cached or served by this worker (only the app shell and the PDF library are). Responses
+  // served from Cache Storage are blob-backed in WebKit, and that is the layer that reports "WebKitBlobResource
+  // error". Leaving every image to the browser keeps images out of that path entirely.
+  if (request.destination === 'image' && !isAppShell) return;
 
-  if (!isAppShell && !isKnownCdn && !isImage) return;
+  if (!isAppShell && !isKnownCdn) return;
 
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
@@ -87,13 +86,6 @@ self.addEventListener('fetch', event => {
       const response = await fetch(request);
       if (response && (response.ok || response.type === 'opaque')) {
         await cache.put(request, response.clone());
-        if (isImage) {
-          const keys = await cache.keys();
-          const imageKeys = keys.filter(key => key.destination === 'image');
-          while (imageKeys.length > 180) {
-            await cache.delete(imageKeys.shift());
-          }
-        }
       }
       return response;
     } catch (error) {

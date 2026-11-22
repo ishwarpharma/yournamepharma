@@ -13,10 +13,15 @@ function loadCart(){try{return JSON.parse(localStorage.getItem(CART_KEY)||'{}')}
 function saveCart(){localStorage.setItem(CART_KEY,JSON.stringify(cart));renderCart()}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function slug(s){return String(s||'').toLowerCase().trim()}
+// Shopify CDN serves the original upload unless a size is requested. Loading full-size originals for 43-195px
+// tiles (4,400+ of them on the home page) exhausts iOS Safari's image/decoder memory. Ask the CDN for right-sized
+// copies instead; data-full keeps the untouched original URL as a fallback (see imageFallback()).
+function sizedImage(url,width){try{let u=new URL(url);if(u.hostname!=='cdn.shopify.com')return url;u.searchParams.set('width',String(width));return u.href}catch(e){return url}}
+function imageFallback(e){let img=e.target;if(!img||img.tagName!=='IMG'||!img.dataset||!img.dataset.full)return;if(img.dataset.retried){img.style.visibility='hidden';return}img.dataset.retried='1';img.src=img.dataset.full}
 function roundFair(n){let step=n<5?.05:n<10?.10:n<20?.25:n<50?.50:n<100?1:n<200?5:10;return Math.round((n+Number.EPSILON)/step)*step}
 function sellingPrice(p){let raw=Number(p.price||0)*(1+Number(config.margin_percent||0)/100);return Math.round(roundFair(raw)*100)/100}
 function priceStatus(p){if(!(Number(p.price)>0))return 'zero';let s=sellingPrice(p);if(Number(p.mrp)>0&&s>Number(p.mrp)+.001)return 'above-mrp';return 'ok'}
-function imageTag(p){return p.image?`<button class="product-image-button" type="button" data-detail="${p.id}" aria-label="View details for ${esc(p.title)}"><img class="thumb" loading="lazy" src="${esc(p.image)}" alt="" onerror="this.style.visibility='hidden'"></button>`:'<span class="thumb"></span>'}
+function imageTag(p){return p.image?`<button class="product-image-button" type="button" data-detail="${p.id}" aria-label="View details for ${esc(p.title)}"><img class="thumb" loading="lazy" decoding="async" src="${esc(sizedImage(p.image,240))}" data-full="${esc(p.image)}" alt=""></button>`:'<span class="thumb"></span>'}
 function categories(){let c=new Set();products.forEach(p=>(p.categories||[]).forEach(x=>c.add(x)));return [...c].sort((a,b)=>a.localeCompare(b))}
 function vendors(){return [...new Set(products.map(p=>p.vendor).filter(Boolean))].sort((a,b)=>a.localeCompare(b))}
 function fillSelect(sel,items,all){let counts={};products.forEach(p=>{if(sel==='#company'){counts[p.vendor]=(counts[p.vendor]||0)+1}else{(p.categories||[]).forEach(c=>counts[c]=(counts[c]||0)+1)}});$(sel).innerHTML=`<option value="">${all}</option>`+items.map(x=>`<option value="${esc(x)}">${esc(x)} (${counts[x]||0})</option>`).join('')}
@@ -34,7 +39,7 @@ function renderCategoryShowcase(){
     return `<section class="category-showcase-row">
       <div class="category-showcase-heading"><button class="category-showcase-category" type="button" data-category-heading="${esc(name)}">${esc(name)}</button></div>
       <div class="category-showcase-track" role="group" aria-label="${esc(name)} medicine images">
-        ${items.map(p=>`<button class="category-showcase-tile" type="button" data-detail="${p.id}" aria-label="View details for ${esc(p.title)}"><img src="${esc(p.image)}" alt="" loading="lazy" decoding="async"></button>`).join('')}
+        ${items.map(p=>`<button class="category-showcase-tile" type="button" data-detail="${p.id}" aria-label="View details for ${esc(p.title)}"><img src="${esc(sizedImage(p.image,360))}" data-full="${esc(p.image)}" alt="" loading="lazy" decoding="async"></button>`).join('')}
       </div>
     </section>`;
   }).join('');
@@ -63,7 +68,7 @@ async function showDetail(id){
  let p=products.find(x=>x.id===id);if(!p)return;activeProduct=p;$('#detailContent').innerHTML='<p>Loading medicine information…</p>';$('#productDialog').showModal();
  try{
   let body=p.bodyHtml||'<p>Medicine information is not available for this product.</p>',status=priceStatus(p),price=status==='ok'?money(sellingPrice(p)):status==='zero'?'Price on request':'Price under review';
-  $('#detailContent').innerHTML=`${p.image?`<div class="detail-image-wrap"><img class="detail-product-image" src="${esc(p.image)}" alt="${esc(p.title)}" loading="eager"></div>`:''}<p class="eyebrow">${esc(p.vendor)} · ${(p.categories||[]).map(esc).join(', ')}</p><h2 class="detail-title">${esc(p.title)}</h2><div class="detail-meta">Medicine information supplied in the product catalogue</div><div class="detail-price">${price}${mrpDisplay(p)}</div><div class="detail-body">${sanitizeBody(body)}</div><div class="detail-actions">${status==='ok'?`<input id="detailQty" type="number" min="1" max="9999" value="1"><button class="primary" id="detailAdd">Add to cart</button>`:'<span class="price-note">Please contact the distributor for price confirmation.</span>'}</div>`;
+  $('#detailContent').innerHTML=`${p.image?`<div class="detail-image-wrap"><img class="detail-product-image" src="${esc(sizedImage(p.image,720))}" data-full="${esc(p.image)}" alt="${esc(p.title)}" loading="eager" decoding="async"></div>`:''}<p class="eyebrow">${esc(p.vendor)} · ${(p.categories||[]).map(esc).join(', ')}</p><h2 class="detail-title">${esc(p.title)}</h2><div class="detail-meta">Medicine information supplied in the product catalogue</div><div class="detail-price">${price}${mrpDisplay(p)}</div><div class="detail-body">${sanitizeBody(body)}</div><div class="detail-actions">${status==='ok'?`<input id="detailQty" type="number" min="1" max="9999" value="1"><button class="primary" id="detailAdd">Add to cart</button>`:'<span class="price-note">Please contact the distributor for price confirmation.</span>'}</div>`;
   $('#detailAdd')?.addEventListener('click',()=>{let n=Math.max(1,Math.min(9999,Math.floor(Number($('#detailQty').value)||1)));addItem(id,n);$('#productDialog').close()})
  }catch(e){$('#detailContent').innerHTML='<h2 class="detail-title">Medicine information</h2><p>Could not load medicine information.</p>'}
 }
@@ -125,7 +130,7 @@ function checkout(){
    cart={};saveCart();
  });
 }
-function bind(){let timer;$('#search').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(render,100)});$('#clearSearch').onclick=()=>{$('#search').value='';render()};$('#emptyReset').onclick=()=>{$('#search').value='';$('#category').value='';$('#company').value='';render()};$('#categoryGrid').addEventListener('click',e=>{let card=e.target.closest('[data-category]');if(card){$('#category').value=card.dataset.category;render();$('#catalogueHead').scrollIntoView({behavior:'smooth',block:'start'})}});$('#categoryShowcase').addEventListener('click',e=>{
+function bind(){document.addEventListener('error',imageFallback,true);let timer;$('#search').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(render,100)});$('#clearSearch').onclick=()=>{$('#search').value='';render()};$('#emptyReset').onclick=()=>{$('#search').value='';$('#category').value='';$('#company').value='';render()};$('#categoryGrid').addEventListener('click',e=>{let card=e.target.closest('[data-category]');if(card){$('#category').value=card.dataset.category;render();$('#catalogueHead').scrollIntoView({behavior:'smooth',block:'start'})}});$('#categoryShowcase').addEventListener('click',e=>{
 let heading=e.target.closest('[data-category-heading]');
 if(heading){$('#category').value=heading.dataset.categoryHeading;render();$('#catalogueHead').scrollIntoView({behavior:'smooth',block:'start'});return}
 let tile=e.target.closest('[data-detail]');if(tile)showDetail(tile.dataset.detail)

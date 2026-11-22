@@ -412,3 +412,8 @@ body{padding-bottom:76px}
 .bottom-nav{grid-template-columns:repeat(6,minmax(0,1fr))}
 @media(min-width:900px){.bottom-nav{width:min(720px,calc(100% - 40px))}}
 @media(max-width:680px){.bottom-nav button{font-size:9px;gap:2px}.bottom-nav-icon{font-size:19px}}
+
+/* iOS Safari: make the BUTTON (not the <img>) the touch target so a tap on a product picture is never handled
+   as an image interaction (callout / drag / image analysis). Clicks still reach the button's data-detail handler. */
+.product-image-button img,.category-showcase-tile img{pointer-events:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none}
+.product-image-button,.category-showcase-tile{-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
