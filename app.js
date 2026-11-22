@@ -101,7 +101,8 @@ function checkout(){
  $('#checkoutDialog').showModal();
  $('#orderForm').addEventListener('submit',e=>{
    e.preventDefault();const form=e.currentTarget,customer=Object.fromEntries(new FormData(form).entries()),status=$('#orderStatus');
-   const number=String(config.whatsapp_number||'').replace(/\D/g,'');
+   const rawNumber=String(config.whatsapp_number||'').replace(/\D/g,'');
+   const number=rawNumber.length===10 ? '91'+rawNumber : (rawNumber.length===12 && rawNumber.startsWith('91') ? rawNumber : '');
    if(!number){status.textContent='Please configure CUSTOMER.whatsapp_number at the top of app.js.';return}
    const ok=makeOrderPdf(customer,lines);
    if(!ok){status.textContent='PDF library did not load. Use the browser print dialog to save the order as PDF, then open WhatsApp.';return}
