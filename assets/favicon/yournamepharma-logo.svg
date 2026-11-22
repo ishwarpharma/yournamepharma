@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0877c9"/><stop offset="1" stop-color="#061d49"/></linearGradient>
+ <linearGradient id="green" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9cff37"/><stop offset="1" stop-color="#20c94b"/></linearGradient>
+ <clipPath id="clip"><rect x="55" y="115" width="190" height="94" rx="47"/></clipPath>
+</defs>
+<rect x="10" y="10" width="340" height="340" rx="78" fill="url(#bg)"/>
+<g transform="rotate(-43 150 160)">
+ <rect x="55" y="115" width="190" height="94" rx="47" fill="#fff"/>
+ <path d="M102 115h-1a47 47 0 0 0 0 94h47v-94Z" fill="url(#green)" clip-path="url(#clip)"/>
+ <path d="M149 119v86" stroke="#07336b" stroke-width="8"/>
+</g>
+<path d="M48 265c52 44 135 33 236-20-62 63-187 86-236 20Z" fill="#0bd34c"/>
+<path d="M260 183h62M291 152v62" stroke="#fff" stroke-width="18" stroke-linecap="round"/>
+<text x="405" y="170" font-family="Arial,Helvetica,sans-serif" font-size="104" font-weight="700" fill="#08264f">YourName</text>
+<text x="405" y="275" font-family="Arial,Helvetica,sans-serif" font-size="104" font-weight="700" font-style="italic" fill="#20b84a">Pharma.com</text>
+<path d="M415 310 Q790 340 1130 300" fill="none" stroke="#39d84e" stroke-width="9" stroke-linecap="round"/>
+</svg>
